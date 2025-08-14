@@ -249,6 +249,18 @@ const LiverTransplantFormPage = () => {
     setActiveStep((prevStep) => prevStep - 1);
   };
 
+  const calculateBMI = () => {
+    const height = watch('heightCm');
+    const weight = watch('weightKg');
+
+    if (height && weight && height > 0) {
+      const heightInMeters = height / 100;
+      const bmi = weight / (heightInMeters * heightInMeters);
+      return bmi.toFixed(1);
+    }
+    return '';
+  };
+
   const renderPatientInformation = () => (
     <Grid container spacing={3}>
       {/* Patient Selection */}
@@ -828,6 +840,7 @@ const LiverTransplantFormPage = () => {
         </Typography>
       </Grid>
 
+      <Grid item xs={12} sm={6} md={3}>
         <Controller
           name="heightCm"
           control={control}
@@ -914,176 +927,6 @@ const LiverTransplantFormPage = () => {
         return renderPlaceholderSection(
           'Final Assessment',
           'This section will include final evaluation, recommendations, and clearance decisions.'
-        );
-      default:
-        return 'Unknown step';
-    }
-  };
-
-  const renderViralMarkersContent = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Typography variant="h6" gutterBottom color="primary">
-          Viral Markers
-        </Typography>
-        <Alert severity="info" sx={{ mb: 2 }}>
-          Enter viral marker test results. Leave blank if not tested.
-        </Alert>
-      </Grid>
-
-      {/* Hepatitis B */}
-      <Grid item xs={12}>
-        <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium' }}>
-          Hepatitis B Markers
-        </Typography>
-      </Grid>
-
-      <Grid item xs={12} sm={6} md={3}>
-        <TextField
-          fullWidth
-          label="HBsAg"
-          select
-          defaultValue=""
-        >
-          <MenuItem value="">Not Tested</MenuItem>
-          <MenuItem value="POSITIVE">Positive</MenuItem>
-          <MenuItem value="NEGATIVE">Negative</MenuItem>
-        </TextField>
-      </Grid>
-
-      <Grid item xs={12} sm={6} md={3}>
-        <TextField
-          fullWidth
-          label="Anti-HBc"
-          select
-          defaultValue=""
-        >
-          <MenuItem value="">Not Tested</MenuItem>
-          <MenuItem value="POSITIVE">Positive</MenuItem>
-          <MenuItem value="NEGATIVE">Negative</MenuItem>
-        </TextField>
-      </Grid>
-
-      <Grid item xs={12} sm={6} md={3}>
-        <TextField
-          fullWidth
-          label="Anti-HBs"
-          select
-          defaultValue=""
-        >
-          <MenuItem value="">Not Tested</MenuItem>
-          <MenuItem value="POSITIVE">Positive</MenuItem>
-          <MenuItem value="NEGATIVE">Negative</MenuItem>
-        </TextField>
-      </Grid>
-
-      <Grid item xs={12} sm={6} md={3}>
-        <TextField
-          fullWidth
-          label="HBeAg"
-          select
-          defaultValue=""
-        >
-          <MenuItem value="">Not Tested</MenuItem>
-          <MenuItem value="POSITIVE">Positive</MenuItem>
-          <MenuItem value="NEGATIVE">Negative</MenuItem>
-        </TextField>
-      </Grid>
-
-      {/* Hepatitis C */}
-      <Grid item xs={12}>
-        <Divider sx={{ my: 2 }} />
-        <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium' }}>
-          Hepatitis C Markers
-        </Typography>
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Anti-HCV"
-          select
-          defaultValue=""
-        >
-          <MenuItem value="">Not Tested</MenuItem>
-          <MenuItem value="POSITIVE">Positive</MenuItem>
-          <MenuItem value="NEGATIVE">Negative</MenuItem>
-        </TextField>
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="HCV RNA"
-          select
-          defaultValue=""
-        >
-          <MenuItem value="">Not Tested</MenuItem>
-          <MenuItem value="DETECTED">Detected</MenuItem>
-          <MenuItem value="NOT_DETECTED">Not Detected</MenuItem>
-        </TextField>
-      </Grid>
-
-      {/* HIV */}
-      <Grid item xs={12}>
-        <Divider sx={{ my: 2 }} />
-        <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium' }}>
-          HIV Markers
-        </Typography>
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="HIV 1 & 2"
-          select
-          defaultValue=""
-        >
-          <MenuItem value="">Not Tested</MenuItem>
-          <MenuItem value="POSITIVE">Positive</MenuItem>
-          <MenuItem value="NEGATIVE">Negative</MenuItem>
-        </TextField>
-      </Grid>
-    </Grid>
-  );
-
-  const renderPlaceholderSection = (title, description) => (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Typography variant="h6" gutterBottom color="primary">
-          {title}
-        </Typography>
-        <Alert severity="info">
-          <Typography variant="body2">
-            {description} This section will be fully implemented in the next phase.
-          </Typography>
-        </Alert>
-      </Grid>
-    </Grid>
-  );
-
-  const getStepContent = (step) => {
-    switch (step) {
-      case 0:
-        return renderPatientInformation();
-      case 1:
-        return renderBloodInvestigations();
-      case 2:
-        return renderViralMarkers();
-      case 3:
-        return renderPlaceholderSection(
-          'Imaging Studies',
-          'This section will include CT scan, MRI, ultrasound, and other imaging study results.'
-        );
-      case 4:
-        return renderPlaceholderSection(
-          'Specialist Evaluations',
-          'This section will include cardiology, pulmonology, psychiatry, and other specialist evaluations.'
-        );
-      case 5:
-        return renderPlaceholderSection(
-          'Clearances',
-          'This section will include medical clearances from various departments and specialists.'
         );
       default:
         return 'Unknown step';
