@@ -1,0 +1,867 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Management
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      UserRole @default(DOCTOR)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  createdPatients Patient[] @relation("CreatedBy")
+  updatedPatients Patient[] @relation("UpdatedBy")
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  DOCTOR
+  NURSE
+  STAFF
+}
+
+// Core Patient Information
+model Patient {
+  id                String    @id @default(uuid())
+  patientId         String    @unique // Auto-generated patient ID
+  mrn               String?   @unique // Medical Record Number
+  
+  // Personal Information
+  firstName         String
+  lastName          String
+  dateOfBirth       DateTime
+  sex               Sex
+  aadharNumber      String?   @unique
+  referredBy        String?
+  
+  // Contact Information
+  houseVillage      String?
+  post              String?
+  city              String?
+  pincode           String?
+  state             String?
+  mobile            String
+  alternativeNumber String?
+  email             String?
+  instagramId       String?
+  facebookId        String?
+  
+  // Professional Information
+  occupation        String?
+  
+  // Medical Information
+  dateOfVisit       DateTime  @default(now())
+  height            Float?    // in cm
+  weight            Float?    // in kg
+  bmi               Float?    // calculated
+  primaryDisease    String?   // Provisional diagnosis
+  
+  // Profile Photo
+  profilePhotoUrl   String?
+  
+  // System Information
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  createdById       String
+  updatedById       String
+  
+  // Relations
+  createdBy         User      @relation("CreatedBy", fields: [createdById], references: [id])
+  updatedBy         User      @relation("UpdatedBy", fields: [updatedById], references: [id])
+  
+  comorbidities     PatientComorbidity[]
+  investigations    PatientInvestigation[]
+  treatments        PatientTreatment[]
+  surgeries         SurgeryDetail[]
+  conservativeTreatments ConservativeTreatment[]
+  followUps         FollowUpRecord[]
+  liverTransplantEvaluations LiverTransplantEvaluation[]
+  medicalForms      MedicalForm[]
+  documents         PatientDocument[]
+  investigationResults InvestigationResult[]
+  
+  @@map("patients")
+}
+
+enum Sex {
+  MALE
+  FEMALE
+  OTHER
+}
+
+// Comorbidities
+model PatientComorbidity {
+  id                    String  @id @default(uuid())
+  patientId             String
+  
+  // Comorbidities
+  diabetes              Boolean @default(false)
+  hypertension          Boolean @default(false)
+  hyperlipidemia        Boolean @default(false)
+  hypothyroid           Boolean @default(false)
+  cardiacDisease        Boolean @default(false)
+  pulmonaryDisease      Boolean @default(false)
+  neurologicalDisease   Boolean @default(false)
+  rheumatologicalDisease Boolean @default(false)
+  otherDiseases         String?
+  
+  // Scoring Systems
+  charlsonComorbidityIndex Int?
+  asaGrade              Int?
+  ecogGrade             Int?
+  
+  // Clinical Data
+  symptoms              String?
+  clinicalExamination   String?
+  investigations        String?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  // Relations
+  patient               Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  @@map("patient_comorbidities")
+}
+
+// Investigations and Diagnostic Studies
+model PatientInvestigation {
+  id                    String              @id @default(uuid())
+  patientId             String
+  investigationType     InvestigationType
+  
+  // Investigation Details
+  date                  DateTime?
+  findings              String?
+  reportUrl             String?             // S3 URL for uploaded report
+  status                InvestigationStatus @default(PENDING)
+  
+  // Specific Investigation Fields
+  ultrasonographyDate   DateTime?
+  ultrasonographyFindings String?
+  ultrasonographyReportUrl String?
+  
+  cectAbdomenDate       DateTime?
+  cectAbdomenFindings   String?
+  cectAbdomenReportUrl  String?
+  
+  upperGIEndoscopyDate  DateTime?
+  upperGIEndoscopyFindings String?
+  upperGIEndoscopyReportUrl String?
+  
+  endoscopicBiopsyDate  DateTime?
+  endoscopicBiopsyFindings String?
+  endoscopicBiopsyReportUrl String?
+  
+  colonoscopyDate       DateTime?
+  colonoscopyFindings   String?
+  colonoscopyReportUrl  String?
+  
+  colonoscopicBiopsyDate DateTime?
+  colonoscopicBiopsyFindings String?
+  colonoscopicBiopsyReportUrl String?
+  
+  petCtScanFindings     String?
+  petCtScanReportUrl    String?
+  
+  otherBiopsyDate       DateTime?
+  otherBiopsyFindings   String?
+  otherBiopsyReportUrl  String?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  // Relations
+  patient               Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  @@map("patient_investigations")
+}
+
+enum InvestigationType {
+  ULTRASONOGRAPHY
+  CECT_ABDOMEN
+  UPPER_GI_ENDOSCOPY
+  ENDOSCOPIC_BIOPSY
+  COLONOSCOPY
+  COLONOSCOPIC_BIOPSY
+  PET_CT_SCAN
+  OTHER_BIOPSY
+  BLOOD_TEST
+  URINE_TEST
+  IMAGING
+  OTHER
+}
+
+enum InvestigationStatus {
+  PENDING
+  SCHEDULED
+  COMPLETED
+  REVIEWED
+  CANCELLED
+}
+
+// Treatment Planning and Management
+model PatientTreatment {
+  id                    String        @id @default(uuid())
+  patientId             String
+  
+  // Diagnosis and Planning
+  finalDiagnosis        String?
+  diseaseStage          String?
+  treatmentPlan         String?
+  
+  // Medications
+  medication1           String?
+  medication2           String?
+  medication3           String?
+  medication4           String?
+  medication5           String?
+  
+  prescriptionUrl       String?       // S3 URL for uploaded prescription
+  
+  // Treatment Type
+  primaryTreatmentPlan  TreatmentType @default(CONSERVATIVE)
+  admissionDate         DateTime?
+  
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  
+  // Relations
+  patient               Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  @@map("patient_treatments")
+}
+
+enum TreatmentType {
+  CONSERVATIVE
+  SURGERY
+  CHEMOTHERAPY
+  RADIOTHERAPY
+  REFERRED_OTHER_DEPARTMENT
+}
+
+// Surgery Management
+model SurgeryDetail {
+  id                    String    @id @default(uuid())
+  patientId             String
+
+  // Surgery Planning
+  planDate              DateTime?
+  nameOfSurgery         String?
+  risksAssociated       String?
+  consentObtained       Boolean   @default(false)
+  consentUrl            String?   // S3 URL for uploaded consent
+
+  // Surgery Execution
+  dateOfSurgery         DateTime?
+  surgeon               String?
+  assistantSurgeon      String?
+  otFindings            String?   // Operating Theater findings
+  otProcedure           String?   // Operating Theater procedure
+
+  // Post-operative Care
+  hospitalCourse        String?
+  complications         String?
+  clavienDindoGrade     Int?      // Clavien-Dindo Morbidity Grade
+
+  // Discharge
+  dateOfDischarge       DateTime?
+  dischargeMedication1  String?
+  dischargeMedication2  String?
+  dischargeMedication3  String?
+  dischargeMedication4  String?
+  dischargeMedication5  String?
+  dischargeMedication6  String?
+  dischargeAdvice       String?
+  nextFollowUp          DateTime?
+  dischargeCardUrl      String?   // S3 URL for uploaded discharge card
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  patient               Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("surgery_details")
+}
+
+// Conservative Treatment Management
+model ConservativeTreatment {
+  id                    String    @id @default(uuid())
+  patientId             String
+
+  // Treatment Details
+  treatmentGiven        String?
+  icuStay               Boolean   @default(false)
+  wardStay              Boolean   @default(false)
+  hospitalStay          Int?      // Number of days
+
+  // Surgery Planning
+  planForSurgery        Boolean   @default(false)
+  planDateOfSurgery     DateTime?
+  nextFollowUpDate      DateTime?
+
+  // Discharge Medications
+  dischargeMedication1  String?
+  dischargeMedication2  String?
+  dischargeMedication3  String?
+  dischargeMedication4  String?
+
+  // Further Management
+  furtherPlanOfManagement String?
+  dischargeCardUrl      String?   // S3 URL for uploaded discharge card
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  patient               Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("conservative_treatments")
+}
+
+// Follow-up Management
+model FollowUpRecord {
+  id                    String    @id @default(uuid())
+  patientId             String
+
+  // Follow-up Details
+  followUpDate          DateTime
+  finalBiopsy           String?
+  stageOfDisease        String?
+  biopsyReportUrl       String?   // S3 URL for uploaded biopsy report
+
+  // Treatment Details
+  chemotherapyDetails   String?
+  radiotherapyDetails   String?
+  nextFollowUpDate      DateTime?
+
+  // Status
+  status                FollowUpStatus @default(SCHEDULED)
+  notes                 String?
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  patient               Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("follow_up_records")
+}
+
+enum FollowUpStatus {
+  SCHEDULED
+  COMPLETED
+  MISSED
+  CANCELLED
+  RESCHEDULED
+}
+
+// Liver Transplant Evaluation
+model LiverTransplantEvaluation {
+  id                    String    @id @default(uuid())
+  patientId             String
+
+  // Patient Demographics (specific to liver transplant)
+  name                  String
+  age                   Int
+  sex                   Sex
+  mrn                   String?
+  address               String?
+  mobileNumber          String
+  heightCm              Float?
+  weightKg              Float?
+  bmiKgM2               Float?
+
+  // Medical Assessment
+  performanceStatus     String?
+  ecogClass             Int?
+  sarcopenia            Boolean   @default(false)
+  childScore            Int?
+  meldNaScore           Int?
+  etiologyNonAlcoholic  String?
+  decompensation        String?
+  comorbidities         String?
+  sixMinuteWalkTest     String?
+
+  // Basic Blood Investigations
+  bloodGroupSubtype     String?
+
+  // CBC
+  hemoglobin            Float?
+  totalCount            Float?
+  plateletCount         Float?
+  hematocrit            Float?
+
+  // LFT (Liver Function Tests)
+  totalBilirubin        Float?
+  directBilirubin       Float?
+  indirectBilirubin     Float?
+  sgot                  Float?
+  sgpt                  Float?
+  alkalinePhosphatase   Float?
+  albumin               Float?
+  totalProtein          Float?
+
+  // KFT (Kidney Function Tests)
+  urea                  Float?
+  creatinine            Float?
+  sodium                Float?
+  potassium             Float?
+  chloride              Float?
+
+  // Blood Sugar
+  rbs                   Float?    // Random Blood Sugar
+  fbs                   Float?    // Fasting Blood Sugar
+  twoHrPpbs             Float?    // 2 Hour Post Prandial Blood Sugar
+  hba1c                 Float?
+
+  // Other Blood Tests
+  serumMagnesium        Float?
+  serumCalciumTotal     Float?
+  serumPhosphorus       Float?
+
+  // Thyroid Profile
+  ft3                   Float?
+  ft4                   Float?
+  tsh                   Float?
+
+  // Lipid Profile
+  totalCholesterol      Float?
+  triglycerides         Float?
+  hdlCholesterol        Float?
+  ldlCholesterol        Float?
+
+  // Coagulation Profile
+  ptInr                 Float?
+  aptt                  Float?
+  thrombinTime          Float?
+  fdp                   Float?
+  dDimer                Float?
+  fibrinogen            Float?
+
+  // Other Tests
+  ldh                   Float?
+  indirectAntiGlobulin  String?
+  directAntiGlobulin    String?
+  rhKellTyping          String?
+
+  // Iron Studies
+  serumIron             Float?
+  tibc                  Float?
+  ferritin              Float?
+  transferrin           Float?
+
+  // Copper Studies
+  serumCopper           Float?
+
+  // Vitamins and Immunoglobulin
+  vitaminD3             Float?
+  immunoglobulinIgg     Float?
+  g6pdAb                String?
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  patient               Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  viralMarkers          LiverTransplantViralMarker[]
+  autoImmuneMarkers     LiverTransplantAutoImmuneMarker[]
+  tumorMarkers          LiverTransplantTumorMarker[]
+  urineAnalysis         LiverTransplantUrineAnalysis[]
+  imagingStudies        LiverTransplantImagingStudy[]
+  specialistEvaluations LiverTransplantSpecialistEvaluation[]
+  clearances            LiverTransplantClearance[]
+
+  @@map("liver_transplant_evaluations")
+}
+
+// Liver Transplant Viral Markers
+model LiverTransplantViralMarker {
+  id                    String    @id @default(uuid())
+  evaluationId          String
+
+  // Viral Markers
+  hbsag                 String?   // Hepatitis B Surface Antigen
+  hcv                   String?   // Hepatitis C Virus
+  hiv                   String?   // HIV
+  cmvIgm                String?   // CMV IgM
+  cmvIgg                String?   // CMV IgG
+  ebv                   String?   // Epstein-Barr Virus
+  hsv                   String?   // Herpes Simplex Virus
+  vdrl                  String?   // VDRL
+  hbcAb                 String?   // Hepatitis B Core Total Antibodies
+  hbvDna                String?   // HBV-DNA (if HBC AB positive)
+  hcvAb                 String?   // HCV Antibody
+  havAntibodyTotal      String?   // HAV Antibody Total
+  havAntibodyIgg        String?   // HAV Antibody IgG
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  evaluation            LiverTransplantEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@map("liver_transplant_viral_markers")
+}
+
+// Liver Transplant Autoimmune Markers
+model LiverTransplantAutoImmuneMarker {
+  id                    String    @id @default(uuid())
+  evaluationId          String
+
+  // Autoimmune Hepatitis Panel
+  sma                   String?   // Smooth Muscle Antibody
+  ama                   String?   // Anti-Mitochondrial Antibody
+  ana                   String?   // Anti-Nuclear Antibody
+  antiLkm1Antibody      String?   // Anti LKM-1 Antibody
+  lkma                  String?   // LKMA
+  asma                  String?   // ASMA
+
+  // Other Autoimmune Markers
+  ceruloplasmin         Float?
+  ancaPAnca             String?   // P-ANCA
+  ancaCAnca             String?   // C-ANCA
+  quantiferonTbTest     String?
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  evaluation            LiverTransplantEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@map("liver_transplant_autoimmune_markers")
+}
+
+// Liver Transplant Tumor Markers
+model LiverTransplantTumorMarker {
+  id                    String    @id @default(uuid())
+  evaluationId          String
+
+  // Tumor Markers
+  afp                   Float?    // Alpha-Fetoprotein
+  cea                   Float?    // Carcinoembryonic Antigen
+  ca199                 Float?    // CA 19-9
+  psaTotal              Float?    // PSA-Total (for male patients)
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  evaluation            LiverTransplantEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@map("liver_transplant_tumor_markers")
+}
+
+// Liver Transplant Urine Analysis
+model LiverTransplantUrineAnalysis {
+  id                    String    @id @default(uuid())
+  evaluationId          String
+
+  // Urine Analysis
+  urineRoutine          String?
+  urineMicroscopic      String?
+  urine24HrSodium       Float?
+  urine24HrProtein      Float?
+  urine24HrCreatinine   Float?
+  urinaryMicroAlbumin   Float?
+  urineSpotProteinCreatinineRatio Float?
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  evaluation            LiverTransplantEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@map("liver_transplant_urine_analysis")
+}
+
+// Liver Transplant Imaging Studies
+model LiverTransplantImagingStudy {
+  id                    String    @id @default(uuid())
+  evaluationId          String
+
+  // Imaging Phase-2
+  usgKub                String?   // USG KUB
+  usgKubDate            DateTime?
+  usgKubReportUrl       String?
+
+  triplePhaseCect       String?   // Triple Phase CECT Abdomen & Pelvis
+  triplePhaseCectDate   DateTime?
+  triplePhaseCectReportUrl String?
+
+  hrctThorax            String?   // HRCT Thorax
+  hrctThoraxDate        DateTime?
+  hrctThoraxReportUrl   String?
+
+  mriBrain              String?   // MRI Brain
+  mriBrainDate          DateTime?
+  mriBrainReportUrl     String?
+
+  ugiEndoscopy          String?   // UGI Endoscopy
+  ugiEndoscopyDate      DateTime?
+  ugiEndoscopyReportUrl String?
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  evaluation            LiverTransplantEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@map("liver_transplant_imaging_studies")
+}
+
+// Liver Transplant Specialist Evaluations
+model LiverTransplantSpecialistEvaluation {
+  id                    String    @id @default(uuid())
+  evaluationId          String
+
+  // Nephrology
+  dtpaScan              String?   // DTPA Scan (Renal Dynamic Study)
+  dtpaScanDate          DateTime?
+  dtpaScanReportUrl     String?
+
+  // Cardiovascular
+  ecg                   String?   // ECG
+  ecgDate               DateTime?
+  ecgReportUrl          String?
+
+  twoDEcho              String?   // 2D Echo
+  twoDEchoDate          DateTime?
+  twoDEchoReportUrl     String?
+  paspValue             Float?    // PASP value from 2D Echo
+
+  cag                   String?   // Coronary Angiography
+  cagDate               DateTime?
+  cagReportUrl          String?
+
+  dobutamineStressEcho  String?   // Dobutamine Stress Echo
+  dobutamineStressEchoDate DateTime?
+  dobutamineStressEchoReportUrl String?
+
+  // Pulmonary
+  cxr                   String?   // Chest X-Ray
+  cxrDate               DateTime?
+  cxrReportUrl          String?
+
+  hrctChest             String?   // HRCT Chest
+  hrctChestDate         DateTime?
+  hrctChestReportUrl    String?
+
+  pft                   String?   // Pulmonary Function Test
+  pftDate               DateTime?
+  pftReportUrl          String?
+
+  abgRoomAir            String?   // ABG at Room Air
+  abgRoomAirDate        DateTime?
+  abgRoomAirReportUrl   String?
+
+  // Septic Screening
+  septicScreening       String?
+  septicScreeningDate   DateTime?
+  septicScreeningReportUrl String?
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  evaluation            LiverTransplantEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@map("liver_transplant_specialist_evaluations")
+}
+
+// Liver Transplant Clearances
+model LiverTransplantClearance {
+  id                    String    @id @default(uuid())
+  evaluationId          String
+
+  // Required Clearances
+  cardiologyClearance   ClearanceStatus @default(PENDING)
+  cardiologyDate        DateTime?
+  cardiologyNotes       String?
+
+  pulmonologyClearance  ClearanceStatus @default(PENDING)
+  pulmonologyDate       DateTime?
+  pulmonologyNotes      String?
+
+  gastroenterologyClearance ClearanceStatus @default(PENDING)
+  gastroenterologyDate  DateTime?
+  gastroenterologyNotes String?
+
+  nephrologyClearance   ClearanceStatus @default(PENDING)
+  nephrologyDate        DateTime?
+  nephrologyNotes       String?
+
+  endocrinologyClearance ClearanceStatus @default(PENDING)
+  endocrinologyDate     DateTime?
+  endocrinologyNotes    String?
+
+  psychiatricClearance  ClearanceStatus @default(PENDING)
+  psychiatricDate       DateTime?
+  psychiatricNotes      String?
+
+  transfusionMedicineClearance ClearanceStatus @default(PENDING)
+  transfusionMedicineDate DateTime?
+  transfusionMedicineNotes String?
+
+  dentalClearance       ClearanceStatus @default(PENDING)
+  dentalDate            DateTime?
+  dentalNotes           String?
+
+  gynaecologyClearance  ClearanceStatus @default(PENDING)
+  gynaecologyDate       DateTime?
+  gynaecologyNotes      String?
+
+  preAnaestheticCheckup ClearanceStatus @default(PENDING)
+  preAnaestheticDate    DateTime?
+  preAnaestheticNotes   String?
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  evaluation            LiverTransplantEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@map("liver_transplant_clearances")
+}
+
+enum ClearanceStatus {
+  PENDING
+  SCHEDULED
+  COMPLETED
+  APPROVED
+  REJECTED
+  NOT_REQUIRED
+}
+
+// Medical Forms Management
+model MedicalForm {
+  id                    String    @id @default(uuid())
+  patientId             String
+  formType              FormType
+  formData              Json      // Store form data as JSON
+  status                FormStatus @default(DRAFT)
+  version               Int       @default(1)
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  patient               Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("medical_forms")
+}
+
+enum FormType {
+  GENERAL_PATIENT
+  LIVER_TRANSPLANT_EVALUATION
+  SURGERY_WORKFLOW
+  CONSERVATIVE_TREATMENT
+  FOLLOW_UP
+}
+
+enum FormStatus {
+  DRAFT
+  COMPLETED
+  REVIEWED
+  APPROVED
+  ARCHIVED
+}
+
+// Document Management
+model PatientDocument {
+  id                    String        @id @default(uuid())
+  patientId             String
+
+  // Document Information
+  fileName              String
+  originalFileName      String
+  fileSize              Int
+  mimeType              String
+  fileUrl               String        // S3 URL
+
+  // Document Classification
+  documentType          DocumentType
+  category              String?       // Additional categorization
+  description           String?
+
+  // Investigation/Form Association
+  investigationId       String?
+  formId                String?
+
+  // Upload Information
+  uploadedAt            DateTime      @default(now())
+  uploadedBy            String?
+
+  // Status
+  isActive              Boolean       @default(true)
+
+  // Relations
+  patient               Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("patient_documents")
+}
+
+enum DocumentType {
+  LAB_REPORT
+  IMAGING_REPORT
+  PRESCRIPTION
+  CONSENT_FORM
+  DISCHARGE_SUMMARY
+  BIOPSY_REPORT
+  ENDOSCOPY_REPORT
+  SURGICAL_REPORT
+  FOLLOW_UP_REPORT
+  INSURANCE_DOCUMENT
+  IDENTIFICATION_DOCUMENT
+  OTHER
+}
+
+// Investigation Results with detailed lab values
+model InvestigationResult {
+  id                    String    @id @default(uuid())
+  patientId             String
+  investigationId       String?
+
+  // Test Information
+  testName              String
+  testCode              String?
+  testValue             String
+  normalRange           String?
+  unit                  String?
+  isAbnormal            Boolean   @default(false)
+
+  // Test Date and Status
+  testDate              DateTime
+  reportDate            DateTime?
+  status                InvestigationStatus @default(PENDING)
+
+  // Additional Information
+  notes                 String?
+  reportUrl             String?   // S3 URL for detailed report
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  patient               Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("investigation_results")
+}
