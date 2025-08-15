@@ -65,5 +65,8 @@
     "@testing-library/react": "^13.3.0",
     "@testing-library/user-event": "^13.5.0",
     "web-vitals": "^2.1.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

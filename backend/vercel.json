@@ -8,11 +8,11 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
+      "src": "/health",
       "dest": "/server.js"
     },
     {
-      "src": "/health",
+      "src": "/api/(.*)",
       "dest": "/server.js"
     },
     {
@@ -20,9 +20,6 @@
       "dest": "/server.js"
     }
   ],
-  "env": {
-    "NODE_ENV": "production"
-  },
   "functions": {
     "server.js": {
       "maxDuration": 30
