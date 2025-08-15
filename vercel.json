@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "medical-patient-management",
   "builds": [
     {
       "src": "server.js",
@@ -30,13 +29,5 @@
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "server.js": {
-      "maxDuration": 30
-    }
-  },
-  "installCommand": "npm install && cd client && npm install --legacy-peer-deps",
-  "buildCommand": "npm run build",
-  "outputDirectory": "client/build"
+  }
 }
