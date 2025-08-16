@@ -4,6 +4,8 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const { PrismaClient } = require('@prisma/client');
@@ -109,11 +111,127 @@ app.use('/api/liver-transplant', authMiddleware, liverTransplantRoutes);
 app.use('/api/files', authMiddleware, fileRoutes);
 app.use('/api/follow-up', authMiddleware, followUpRoutes);
 
+// Serve static files from React build (if available)
+const buildPath = path.join(__dirname, 'client/build');
+if (fs.existsSync(buildPath)) {
+  app.use(express.static(buildPath));
+}
+
 // Catch-all handler: send back React's index.html file for any non-API routes
 app.get('*', (req, res) => {
   // Only serve React app for non-API routes
-  if (!req.path.startsWith('/api/')) {
-    res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+  if (!req.path.startsWith('/api/') && !req.path.startsWith('/health')) {
+    const indexPath = path.join(__dirname, 'client/build', 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      // Fallback HTML if React build doesn't exist
+      res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Medical Patient Management System</title>
+            <style>
+                body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+                .container { text-align: center; }
+                .status { background: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0; }
+                .api-test { background: #f0f8ff; padding: 15px; border-radius: 8px; margin: 10px 0; }
+                button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+                button:hover { background: #0056b3; }
+                .result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+                .success { background: #d4edda; color: #155724; }
+                .error { background: #f8d7da; color: #721c24; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🏥 Medical Patient Management System</h1>
+                <div class="status">
+                    <h2>✅ Backend Server is Running!</h2>
+                    <p>Your medical management system backend is successfully deployed on Vercel.</p>
+                </div>
+
+                <div class="api-test">
+                    <h3>🔧 API Testing</h3>
+                    <button onclick="testHealth()">Test Health Check</button>
+                    <button onclick="testLogin()">Test Login API</button>
+                    <button onclick="testPatients()">Test Patients API</button>
+                    <div id="results"></div>
+                </div>
+
+                <div class="status">
+                    <h3>📋 Available API Endpoints:</h3>
+                    <ul style="text-align: left;">
+                        <li><strong>Health Check:</strong> <a href="/health">/health</a></li>
+                        <li><strong>Authentication:</strong> /api/auth/login, /api/auth/register</li>
+                        <li><strong>Patients:</strong> /api/patients (GET, POST, PUT, DELETE)</li>
+                        <li><strong>Investigations:</strong> /api/investigations</li>
+                        <li><strong>Treatments:</strong> /api/treatments</li>
+                        <li><strong>Surgeries:</strong> /api/surgeries</li>
+                        <li><strong>Follow-ups:</strong> /api/followups</li>
+                    </ul>
+                </div>
+
+                <div class="status">
+                    <h3>🔐 Default Admin Credentials:</h3>
+                    <p><strong>Email:</strong> admin@medical.com</p>
+                    <p><strong>Password:</strong> admin123</p>
+                </div>
+            </div>
+
+            <script>
+                function addResult(message, type) {
+                    const results = document.getElementById('results');
+                    const div = document.createElement('div');
+                    div.className = 'result ' + type;
+                    div.textContent = message;
+                    results.appendChild(div);
+                }
+
+                async function testHealth() {
+                    try {
+                        const response = await fetch('/health');
+                        const data = await response.json();
+                        addResult('✅ Health Check: ' + JSON.stringify(data), 'success');
+                    } catch (error) {
+                        addResult('❌ Health Check Error: ' + error.message, 'error');
+                    }
+                }
+
+                async function testLogin() {
+                    try {
+                        const response = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: 'admin@medical.com', password: 'admin123' })
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            addResult('✅ Login successful: ' + data.data.user.email, 'success');
+                        } else {
+                            addResult('❌ Login failed: ' + data.message, 'error');
+                        }
+                    } catch (error) {
+                        addResult('❌ Login Error: ' + error.message, 'error');
+                    }
+                }
+
+                async function testPatients() {
+                    try {
+                        const response = await fetch('/api/patients');
+                        const data = await response.json();
+                        addResult('✅ Patients API: Found ' + (data.data?.patients?.length || 0) + ' patients', 'success');
+                    } catch (error) {
+                        addResult('❌ Patients API Error: ' + error.message, 'error');
+                    }
+                }
+            </script>
+        </body>
+        </html>
+      `);
+    }
   } else {
     res.status(404).json({
       success: false,

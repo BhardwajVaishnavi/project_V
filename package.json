@@ -20,7 +20,7 @@
     "clean": "rm -rf node_modules client/node_modules",
     "clean:install": "npm run clean && npm run install:all",
     "heroku-postbuild": "npm run install:all && npm run build",
-    "vercel-build": "cd client && npm install --legacy-peer-deps && CI=false npm run build"
+    "vercel-build": "cd client && npm install --legacy-peer-deps && npm run build"
   },
   "keywords": [
     "medical",
