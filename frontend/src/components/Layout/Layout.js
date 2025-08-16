@@ -36,9 +36,10 @@ const Layout = () => {
           display: 'flex',
           flexDirection: 'column',
           width: isMobile ? '100%' : sidebarOpen ? 'calc(100% - 280px)' : '100%',
-          minHeight: '100vh',
-          marginTop: '64px', // Account for header height
-          marginLeft: isMobile ? 0 : sidebarOpen ? '280px' : 0, // Use margin for proper positioning
+          minHeight: 'calc(100vh - 64px)', // Subtract header height
+          marginTop: '64px', // Account for fixed header height
+          marginLeft: isMobile ? 0 : sidebarOpen ? '280px' : 0,
+          paddingTop: '16px', // Add padding to create space below header
           transition: theme.transitions.create(['margin-left', 'width'], {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,
@@ -51,13 +52,10 @@ const Layout = () => {
           className="form-container"
           sx={{
             flex: 1,
-            p: 0.5, // Further reduced padding
-            pl: 1, // Minimal left padding
-            pr: 1, // Minimal right padding
+            p: 2, // Proper padding for content
             width: '100%',
             maxWidth: '100%',
             boxSizing: 'border-box',
-            margin: 0,
           }}
         >
           <Outlet />

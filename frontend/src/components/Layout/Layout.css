@@ -14,15 +14,16 @@
   margin: 0 !important;
   padding-right: 0 !important;
   overflow-x: hidden;
+  margin-top: 64px !important; /* Ensure content starts below fixed header */
+  padding-top: 16px !important; /* Add space between header and content */
 }
 
-/* Form container alignment - reduced spacing */
+/* Form container alignment - proper spacing */
 .form-container {
   width: 100%;
   max-width: 100%;
   margin: 0;
-  padding: 8px 8px !important; /* Further reduced left/right padding */
-
+  padding: 16px !important; /* Proper padding for content readability */
 }
 
 /* Card content alignment - reduced spacing */
