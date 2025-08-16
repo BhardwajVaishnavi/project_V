@@ -69,6 +69,27 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('combined'));
 }
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Medical Patient Management System API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      patients: '/api/patients',
+      investigations: '/api/investigations',
+      treatments: '/api/treatments',
+      surgery: '/api/surgery',
+      liverTransplant: '/api/liver-transplant',
+      files: '/api/files',
+      followUp: '/api/follow-up'
+    },
+    documentation: 'Visit /health for system status'
+  });
+});
+
 // Health check endpoint
 app.get('/health', async (req, res) => {
   try {
