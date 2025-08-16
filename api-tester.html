@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Patient Management - API Tester</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .api-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        .result { margin: 10px 0; padding: 15px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .token-display { background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0; font-family: monospace; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 Medical Patient Management System</h1>
+            <h2>API Testing Interface</h2>
+            <p><strong>Backend URL:</strong> https://project-95gc0ymhk-bhardwajvaishnavis-projects.vercel.app</p>
+        </div>
+
+        <div class="api-section">
+            <h3>🔐 Authentication</h3>
+            <div class="grid">
+                <div>
+                    <h4>Login</h4>
+                    <input type="email" id="loginEmail" placeholder="Email" value="admin@medical.com">
+                    <input type="password" id="loginPassword" placeholder="Password" value="admin123">
+                    <button onclick="testLogin()">Login</button>
+                </div>
+                <div>
+                    <h4>Current Token</h4>
+                    <div id="tokenDisplay" class="token-display">No token yet</div>
+                    <button onclick="clearToken()">Clear Token</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="api-section">
+            <h3>🏥 Patient Management</h3>
+            <button onclick="getPatients()">Get All Patients</button>
+            <button onclick="createSamplePatient()">Create Sample Patient</button>
+            <button onclick="getPatientStats()">Get Patient Statistics</button>
+        </div>
+
+        <div class="api-section">
+            <h3>🔬 Medical Records</h3>
+            <button onclick="getInvestigations()">Get Investigations</button>
+            <button onclick="getTreatments()">Get Treatments</button>
+            <button onclick="getSurgeries()">Get Surgeries</button>
+            <button onclick="getFollowUps()">Get Follow-ups</button>
+        </div>
+
+        <div class="api-section">
+            <h3>⚙️ System</h3>
+            <button onclick="testHealth()">Health Check</button>
+            <button onclick="testDatabase()">Database Connection</button>
+            <button onclick="clearResults()">Clear Results</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://project-95gc0ymhk-bhardwajvaishnavis-projects.vercel.app';
+        let authToken = localStorage.getItem('authToken');
+
+        function updateTokenDisplay() {
+            const display = document.getElementById('tokenDisplay');
+            if (authToken) {
+                display.textContent = authToken.substring(0, 50) + '...';
+            } else {
+                display.textContent = 'No token yet';
+            }
+        }
+
+        function addResult(title, data, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = 'result ' + type;
+            div.innerHTML = `<strong>${title}</strong>\n${JSON.stringify(data, null, 2)}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        function clearToken() {
+            authToken = null;
+            localStorage.removeItem('authToken');
+            updateTokenDisplay();
+            addResult('Token Cleared', 'Authentication token removed', 'info');
+        }
+
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const config = {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+                    },
+                    ...options
+                };
+
+                const response = await fetch(`${API_BASE}${endpoint}`, config);
+                const data = await response.json();
+                
+                return { response, data };
+            } catch (error) {
+                throw new Error(`Network error: ${error.message}`);
+            }
+        }
+
+        async function testHealth() {
+            try {
+                const { response, data } = await apiCall('/health');
+                addResult('Health Check', data, response.ok ? 'success' : 'error');
+            } catch (error) {
+                addResult('Health Check Error', error.message, 'error');
+            }
+        }
+
+        async function testLogin() {
+            try {
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+
+                const { response, data } = await apiCall('/api/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (response.ok && data.success) {
+                    authToken = data.data.token;
+                    localStorage.setItem('authToken', authToken);
+                    updateTokenDisplay();
+                    addResult('Login Successful', {
+                        user: data.data.user,
+                        tokenReceived: true
+                    }, 'success');
+                } else {
+                    addResult('Login Failed', data, 'error');
+                }
+            } catch (error) {
+                addResult('Login Error', error.message, 'error');
+            }
+        }
+
+        async function getPatients() {
+            try {
+                const { response, data } = await apiCall('/api/patients');
+                addResult('Patients List', data, response.ok ? 'success' : 'error');
+            } catch (error) {
+                addResult('Patients Error', error.message, 'error');
+            }
+        }
+
+        async function createSamplePatient() {
+            try {
+                const samplePatient = {
+                    firstName: 'John',
+                    lastName: 'Doe',
+                    dateOfBirth: '1990-01-15',
+                    sex: 'MALE',
+                    mobile: '9876543210',
+                    state: 'Maharashtra',
+                    city: 'Mumbai',
+                    dateOfVisit: new Date().toISOString()
+                };
+
+                const { response, data } = await apiCall('/api/patients', {
+                    method: 'POST',
+                    body: JSON.stringify(samplePatient)
+                });
+
+                addResult('Create Patient', data, response.ok ? 'success' : 'error');
+            } catch (error) {
+                addResult('Create Patient Error', error.message, 'error');
+            }
+        }
+
+        async function getInvestigations() {
+            try {
+                const { response, data } = await apiCall('/api/investigations');
+                addResult('Investigations', data, response.ok ? 'success' : 'error');
+            } catch (error) {
+                addResult('Investigations Error', error.message, 'error');
+            }
+        }
+
+        async function getTreatments() {
+            try {
+                const { response, data } = await apiCall('/api/treatments');
+                addResult('Treatments', data, response.ok ? 'success' : 'error');
+            } catch (error) {
+                addResult('Treatments Error', error.message, 'error');
+            }
+        }
+
+        async function getSurgeries() {
+            try {
+                const { response, data } = await apiCall('/api/surgeries');
+                addResult('Surgeries', data, response.ok ? 'success' : 'error');
+            } catch (error) {
+                addResult('Surgeries Error', error.message, 'error');
+            }
+        }
+
+        async function getFollowUps() {
+            try {
+                const { response, data } = await apiCall('/api/followups');
+                addResult('Follow-ups', data, response.ok ? 'success' : 'error');
+            } catch (error) {
+                addResult('Follow-ups Error', error.message, 'error');
+            }
+        }
+
+        // Initialize
+        updateTokenDisplay();
+        addResult('API Tester Ready', 'You can now test all the medical management APIs', 'info');
+    </script>
+</body>
+</html>
