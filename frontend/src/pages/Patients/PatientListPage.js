@@ -12,6 +12,10 @@ import {
   Avatar,
   IconButton,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Add,
@@ -20,13 +24,15 @@ import {
   Person,
   Edit,
   Visibility,
+  Delete,
 } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { format } from 'date-fns';
+import toast from 'react-hot-toast';
 
-import { getPatients, setFilters } from '../../store/slices/patientSlice';
+import { getPatients, setFilters, deletePatient } from '../../store/slices/patientSlice';
 import LoadingSpinner from '../../components/Common/LoadingSpinner';
 
 const PatientListPage = () => {
@@ -40,6 +46,8 @@ const PatientListPage = () => {
     page: 0,
     pageSize: 10,
   });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [patientToDelete, setPatientToDelete] = useState(null);
 
   useEffect(() => {
     dispatch(
@@ -59,16 +67,40 @@ const PatientListPage = () => {
     setPaginationModel(newModel);
   };
 
+  const handleDeleteClick = (patient) => {
+    setPatientToDelete(patient);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!patientToDelete) return;
+
+    try {
+      await dispatch(deletePatient(patientToDelete.id)).unwrap();
+      toast.success('Patient deleted successfully!');
+      setDeleteDialogOpen(false);
+      setPatientToDelete(null);
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error(error || 'Failed to delete patient');
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setPatientToDelete(null);
+  };
+
   const columns = [
     {
-      field: 'avatar',
-      headerName: '',
-      width: 60,
+      field: 'serialNumber',
+      headerName: 'S.No.',
+      width: 70,
       sortable: false,
       renderCell: (params) => (
-        <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>
-          <Person fontSize="small" />
-        </Avatar>
+        <Typography variant="body2" fontWeight="bold">
+          {params.api.getRowIndexRelativeToVisibleRows(params.id) + 1 + (paginationModel.page * paginationModel.pageSize)}
+        </Typography>
       ),
     },
     {
@@ -76,19 +108,37 @@ const PatientListPage = () => {
       headerName: 'Patient ID',
       width: 120,
       renderCell: (params) => (
-        <Chip label={params.value} size="small" variant="outlined" />
+        <Chip label={params.value} size="small" variant="outlined" color="primary" />
       ),
     },
     {
       field: 'fullName',
       headerName: 'Name',
-      width: 200,
+      width: 180,
       valueGetter: (params) => `${params.row.firstName} ${params.row.lastName}`,
+      renderCell: (params) => (
+        <Box display="flex" alignItems="center" gap={1}>
+          <Avatar sx={{ bgcolor: 'primary.main', width: 24, height: 24 }}>
+            <Person fontSize="small" />
+          </Avatar>
+          <Typography variant="body2" fontWeight="medium">
+            {params.value}
+          </Typography>
+        </Box>
+      ),
     },
     {
       field: 'age',
       headerName: 'Age',
-      width: 80,
+      width: 70,
+      valueGetter: (params) => {
+        if (params.row.dateOfBirth) {
+          const today = new Date();
+          const birthDate = new Date(params.row.dateOfBirth);
+          return Math.floor((today - birthDate) / (365.25 * 24 * 60 * 60 * 1000));
+        }
+        return 'N/A';
+      },
     },
     {
       field: 'sex',
@@ -99,6 +149,7 @@ const PatientListPage = () => {
           label={params.value}
           size="small"
           color={params.value === 'MALE' ? 'primary' : 'secondary'}
+          variant="outlined"
         />
       ),
     },
@@ -106,6 +157,11 @@ const PatientListPage = () => {
       field: 'mobile',
       headerName: 'Mobile',
       width: 130,
+      renderCell: (params) => (
+        <Typography variant="body2" fontFamily="monospace">
+          {params.value}
+        </Typography>
+      ),
     },
     {
       field: 'city',
@@ -113,29 +169,117 @@ const PatientListPage = () => {
       width: 120,
     },
     {
-      field: 'primaryDisease',
-      headerName: 'Primary Disease',
-      width: 180,
+      field: 'dateOfSurgery',
+      headerName: 'Date of Surgery',
+      width: 130,
+      valueGetter: (params) => {
+        // Get the most recent surgery date from surgeries array
+        if (params.row.surgeries && params.row.surgeries.length > 0) {
+          const latestSurgery = params.row.surgeries
+            .filter(s => s.dateOfSurgery)
+            .sort((a, b) => new Date(b.dateOfSurgery) - new Date(a.dateOfSurgery))[0];
+          return latestSurgery?.dateOfSurgery;
+        }
+        return null;
+      },
       renderCell: (params) => (
-        <Typography variant="body2" noWrap>
-          {params.value || 'Not specified'}
+        <Typography variant="body2">
+          {params.value ? format(new Date(params.value), 'MMM dd, yyyy') : 'Not scheduled'}
         </Typography>
       ),
     },
     {
-      field: 'dateOfVisit',
-      headerName: 'Last Visit',
-      width: 120,
+      field: 'transplantType',
+      headerName: 'DDLT/LDLT',
+      width: 100,
       renderCell: (params) => (
-        <Typography variant="body2">
-          {format(new Date(params.value), 'MMM dd, yyyy')}
+        params.value ? (
+          <Chip
+            label={params.value}
+            size="small"
+            color={params.value === 'DDLT' ? 'warning' : 'success'}
+            variant="filled"
+          />
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            N/A
+          </Typography>
+        )
+      ),
+    },
+    {
+      field: 'meldScore',
+      headerName: 'MELD Score',
+      width: 100,
+      renderCell: (params) => (
+        params.value ? (
+          <Chip
+            label={params.value}
+            size="small"
+            color={
+              params.value >= 25 ? 'error' :
+              params.value >= 15 ? 'warning' :
+              'success'
+            }
+            variant="filled"
+          />
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            N/A
+          </Typography>
+        )
+      ),
+    },
+    {
+      field: 'bloodGroup',
+      headerName: 'Blood Group',
+      width: 110,
+      renderCell: (params) => (
+        params.value ? (
+          <Chip
+            label={params.value}
+            size="small"
+            variant="outlined"
+            sx={{ fontWeight: 'bold' }}
+          />
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            Unknown
+          </Typography>
+        )
+      ),
+    },
+    {
+      field: 'nextFollowUp',
+      headerName: 'Next Follow Up',
+      width: 130,
+      valueGetter: (params) => {
+        // Get the next follow-up date from various sources
+        if (params.row.followUps && params.row.followUps.length > 0) {
+          const nextFollowUp = params.row.followUps
+            .filter(f => new Date(f.followUpDate) > new Date())
+            .sort((a, b) => new Date(a.followUpDate) - new Date(b.followUpDate))[0];
+          return nextFollowUp?.followUpDate;
+        }
+        // Check surgery next follow up
+        if (params.row.surgeries && params.row.surgeries.length > 0) {
+          const latestSurgery = params.row.surgeries
+            .filter(s => s.nextFollowUp)
+            .sort((a, b) => new Date(b.dateOfSurgery || 0) - new Date(a.dateOfSurgery || 0))[0];
+          return latestSurgery?.nextFollowUp;
+        }
+        return null;
+      },
+      renderCell: (params) => (
+        <Typography variant="body2" color={params.value ? 'text.primary' : 'text.secondary'}>
+          {params.value ? format(new Date(params.value), 'MMM dd, yyyy') : 'Not scheduled'}
         </Typography>
       ),
     },
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 120,
+      width: 150,
       sortable: false,
       renderCell: (params) => (
         <Box>
@@ -153,6 +297,15 @@ const PatientListPage = () => {
               onClick={() => navigate(`/patients/${params.row.id}/edit`)}
             >
               <Edit fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete">
+            <IconButton
+              size="small"
+              color="error"
+              onClick={() => handleDeleteClick(params.row)}
+            >
+              <Delete fontSize="small" />
             </IconButton>
           </Tooltip>
         </Box>
@@ -244,12 +397,13 @@ const PatientListPage = () => {
       <Card>
         <Box sx={{ height: 600, width: '100%' }}>
           <DataGrid
-            rows={patients}
+            rows={patients || []}
             columns={columns}
+            getRowId={(row) => row?.id || Math.random()}
             paginationModel={paginationModel}
             onPaginationModelChange={handlePaginationModelChange}
             pageSizeOptions={[5, 10, 25, 50]}
-            rowCount={pagination.totalCount}
+            rowCount={pagination?.totalCount || 0}
             paginationMode="server"
             loading={isLoading}
             disableRowSelectionOnClick
@@ -276,6 +430,35 @@ const PatientListPage = () => {
           />
         </Box>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Delete Patient</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mt: 2 }}>
+            Are you sure you want to delete{' '}
+            <strong>
+              {patientToDelete?.firstName} {patientToDelete?.lastName}
+            </strong>
+            ? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel}>Cancel</Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

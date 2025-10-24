@@ -147,6 +147,9 @@ const schema = yup.object({
     .max(300, 'Weight cannot exceed 300 kg'),
   primaryDisease: yup.string().nullable().max(200, 'Maximum 200 characters'),
   dateOfVisit: yup.date().nullable().max(new Date(), 'Visit date cannot be in future'),
+  bloodGroup: yup.string().nullable().oneOf(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], 'Invalid blood group'),
+  meldScore: yup.number().nullable().min(0, 'MELD score must be positive').max(40, 'MELD score cannot exceed 40'),
+  transplantType: yup.string().nullable().oneOf(['DDLT', 'LDLT'], 'Invalid transplant type'),
 });
 
 const steps = ['Personal Information', 'Contact Details', 'Medical Information'];
@@ -192,10 +195,13 @@ const PatientFormPage = () => {
       instagramId: '',
       facebookId: '',
       occupation: '',
-      dateOfVisit: null, // Changed from new Date() to null to avoid invalid date issues
+      dateOfVisit: null,
       height: '',
       weight: '',
       primaryDisease: '',
+      bloodGroup: '',
+      meldScore: '',
+      transplantType: '',
     },
   });
 
@@ -1012,6 +1018,84 @@ const PatientFormPage = () => {
         />
       </Grid>
 
+      {/* Additional Medical Information */}
+      <Grid item xs={12}>
+        <Divider sx={{ my: 2 }} />
+        <Typography variant="h6" gutterBottom color="primary">
+          Additional Medical Information
+        </Typography>
+      </Grid>
+
+      <Grid item xs={12} sm={6}>
+        <Controller
+          name="bloodGroup"
+          control={control}
+          render={({ field }) => (
+            <TextField
+              {...field}
+              fullWidth
+              select
+              label="Blood Group"
+              error={!!errors.bloodGroup}
+              helperText={errors.bloodGroup?.message}
+            >
+              <MenuItem value="">
+                <em>Select Blood Group</em>
+              </MenuItem>
+              <MenuItem value="A+">A+</MenuItem>
+              <MenuItem value="A-">A-</MenuItem>
+              <MenuItem value="B+">B+</MenuItem>
+              <MenuItem value="B-">B-</MenuItem>
+              <MenuItem value="AB+">AB+</MenuItem>
+              <MenuItem value="AB-">AB-</MenuItem>
+              <MenuItem value="O+">O+</MenuItem>
+              <MenuItem value="O-">O-</MenuItem>
+            </TextField>
+          )}
+        />
+      </Grid>
+
+      <Grid item xs={12} sm={6}>
+        <Controller
+          name="meldScore"
+          control={control}
+          render={({ field }) => (
+            <TextField
+              {...field}
+              fullWidth
+              label="MELD Score"
+              type="number"
+              placeholder="0-40"
+              error={!!errors.meldScore}
+              helperText={errors.meldScore?.message || 'Model for End-Stage Liver Disease score (optional)'}
+            />
+          )}
+        />
+      </Grid>
+
+      <Grid item xs={12} sm={6}>
+        <Controller
+          name="transplantType"
+          control={control}
+          render={({ field }) => (
+            <TextField
+              {...field}
+              fullWidth
+              select
+              label="Transplant Type"
+              error={!!errors.transplantType}
+              helperText={errors.transplantType?.message}
+            >
+              <MenuItem value="">
+                <em>Select Transplant Type</em>
+              </MenuItem>
+              <MenuItem value="DDLT">DDLT (Deceased Donor)</MenuItem>
+              <MenuItem value="LDLT">LDLT (Living Donor)</MenuItem>
+            </TextField>
+          )}
+        />
+      </Grid>
+
       {/* Debug Buttons - Remove in production */}
       <Grid item xs={12}>
         <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
@@ -1118,10 +1202,20 @@ const PatientFormPage = () => {
                     variant="contained"
                     startIcon={<Save />}
                     disabled={isLoading}
-                    onClick={() => {
+                    onClick={async (e) => {
                       console.log('💾 Save button clicked!');
                       console.log('📋 Current form errors:', errors);
                       console.log('🔍 Form values:', watch());
+
+                      // Validate entire form before submission
+                      const isValid = await trigger();
+                      console.log('✅ Form validation result:', isValid);
+
+                      if (!isValid) {
+                        console.log('❌ Form has validation errors');
+                        toast.error('Please fix all validation errors before submitting');
+                        e.preventDefault();
+                      }
                     }}
                   >
                     {isLoading ? (

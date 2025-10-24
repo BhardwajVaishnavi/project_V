@@ -12,11 +12,18 @@ import {
   Tab,
   Tabs,
   Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material';
 import { Edit, Person, ArrowBack } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useState } from 'react';
+import { format } from 'date-fns';
 
 import { getPatientById } from '../../store/slices/patientSlice';
 import LoadingSpinner from '../../components/Common/LoadingSpinner';
@@ -172,6 +179,9 @@ const PatientDetailPage = () => {
           <Tab label="Medical Information" />
           <Tab label="Investigations" />
           <Tab label="Treatments" />
+          <Tab label="Surgeries" />
+          <Tab label="Follow-ups" />
+          <Tab label="Comorbidities" />
           <Tab label="Documents" />
         </Tabs>
       </Paper>
@@ -194,10 +204,42 @@ const PatientDetailPage = () => {
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">
+                  Blood Group
+                </Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {patient.bloodGroup || 'Not specified'}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">
                   Height / Weight / BMI
                 </Typography>
                 <Typography variant="body1" fontWeight="medium">
                   {patient.height ? `${patient.height} cm` : 'N/A'} / {patient.weight ? `${patient.weight} kg` : 'N/A'} / {patient.bmi || 'N/A'}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  MELD Score
+                </Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {patient.meldScore || 'Not specified'}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Transplant Type
+                </Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {patient.transplantType || 'Not specified'}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Date of Visit
+                </Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {patient.dateOfVisit ? format(new Date(patient.dateOfVisit), 'MMM dd, yyyy') : 'Not specified'}
                 </Typography>
               </Grid>
             </Grid>
@@ -211,9 +253,32 @@ const PatientDetailPage = () => {
             <Typography variant="h6" gutterBottom>
               Investigations
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Investigation records will be displayed here.
-            </Typography>
+            {patient.investigations && patient.investigations.length > 0 ? (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                      <TableCell>Investigation Type</TableCell>
+                      <TableCell>Result</TableCell>
+                      <TableCell>Date</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {patient.investigations.map((inv) => (
+                      <TableRow key={inv.id}>
+                        <TableCell>{inv.investigationType || 'N/A'}</TableCell>
+                        <TableCell>{inv.result || 'N/A'}</TableCell>
+                        <TableCell>{inv.createdAt ? format(new Date(inv.createdAt), 'MMM dd, yyyy') : 'N/A'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No investigations recorded yet.
+              </Typography>
+            )}
           </CardContent>
         </Card>
       )}
@@ -224,9 +289,32 @@ const PatientDetailPage = () => {
             <Typography variant="h6" gutterBottom>
               Treatments
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Treatment records will be displayed here.
-            </Typography>
+            {patient.treatments && patient.treatments.length > 0 ? (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                      <TableCell>Final Diagnosis</TableCell>
+                      <TableCell>Treatment Plan</TableCell>
+                      <TableCell>Primary Treatment</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {patient.treatments.map((treatment) => (
+                      <TableRow key={treatment.id}>
+                        <TableCell>{treatment.finalDiagnosis || 'N/A'}</TableCell>
+                        <TableCell>{treatment.treatmentPlan || 'N/A'}</TableCell>
+                        <TableCell>{treatment.primaryTreatmentPlan || 'N/A'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No treatments recorded yet.
+              </Typography>
+            )}
           </CardContent>
         </Card>
       )}
@@ -235,11 +323,136 @@ const PatientDetailPage = () => {
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
+              Surgeries
+            </Typography>
+            {patient.surgeries && patient.surgeries.length > 0 ? (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                      <TableCell>Surgery Name</TableCell>
+                      <TableCell>Date of Surgery</TableCell>
+                      <TableCell>Next Follow-up</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {patient.surgeries.map((surgery) => (
+                      <TableRow key={surgery.id}>
+                        <TableCell>{surgery.nameOfSurgery || 'N/A'}</TableCell>
+                        <TableCell>{surgery.dateOfSurgery ? format(new Date(surgery.dateOfSurgery), 'MMM dd, yyyy') : 'N/A'}</TableCell>
+                        <TableCell>{surgery.nextFollowUp ? format(new Date(surgery.nextFollowUp), 'MMM dd, yyyy') : 'N/A'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No surgeries recorded yet.
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {tabValue === 4 && (
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Follow-ups
+            </Typography>
+            {patient.followUps && patient.followUps.length > 0 ? (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                      <TableCell>Follow-up Date</TableCell>
+                      <TableCell>Status</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {patient.followUps.map((followUp) => (
+                      <TableRow key={followUp.id}>
+                        <TableCell>{followUp.followUpDate ? format(new Date(followUp.followUpDate), 'MMM dd, yyyy') : 'N/A'}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={followUp.status || 'Pending'}
+                            size="small"
+                            color={followUp.status === 'COMPLETED' ? 'success' : 'warning'}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No follow-ups scheduled yet.
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {tabValue === 5 && (
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Comorbidities
+            </Typography>
+            {patient.comorbidities && patient.comorbidities.length > 0 ? (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {patient.comorbidities.map((comorbidity) => (
+                  <Chip
+                    key={comorbidity.id}
+                    label={comorbidity.comorbidityName || 'Unknown'}
+                    color="primary"
+                    variant="outlined"
+                  />
+                ))}
+              </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No comorbidities recorded yet.
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {tabValue === 6 && (
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
               Documents
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Patient documents will be displayed here.
-            </Typography>
+            {patient.documents && patient.documents.length > 0 ? (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                      <TableCell>Document Name</TableCell>
+                      <TableCell>Type</TableCell>
+                      <TableCell>Upload Date</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {patient.documents.map((doc) => (
+                      <TableRow key={doc.id}>
+                        <TableCell>{doc.documentName || 'N/A'}</TableCell>
+                        <TableCell>{doc.documentType || 'N/A'}</TableCell>
+                        <TableCell>{doc.createdAt ? format(new Date(doc.createdAt), 'MMM dd, yyyy') : 'N/A'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No documents uploaded yet.
+              </Typography>
+            )}
           </CardContent>
         </Card>
       )}

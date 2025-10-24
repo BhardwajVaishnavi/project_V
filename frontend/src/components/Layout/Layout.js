@@ -3,6 +3,7 @@ import { Box, useMediaQuery, useTheme } from '@mui/material';
 
 import Header from './Header';
 import Sidebar from './Sidebar';
+import BackendStatus from '../Common/BackendStatus';
 import './Layout.css';
 
 const Layout = () => {
@@ -58,6 +59,7 @@ const Layout = () => {
             boxSizing: 'border-box',
           }}
         >
+          <BackendStatus />
           <Outlet />
         </Box>
       </Box>

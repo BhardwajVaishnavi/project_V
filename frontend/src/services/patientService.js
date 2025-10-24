@@ -20,13 +20,13 @@ const patientService = {
     });
 
     const response = await api.get(`/patients?${queryParams}`);
-    return response.data;
+    return response;
   },
 
   // Get patient by ID
   getPatientById: async (id) => {
     const response = await api.get(`/patients/${id}`);
-    return response.data;
+    return response;
   },
 
   // Create new patient
@@ -51,13 +51,13 @@ const patientService = {
   // Update patient
   updatePatient: async (id, patientData) => {
     const response = await api.put(`/patients/${id}`, patientData);
-    return response.data;
+    return response;
   },
 
   // Delete patient (soft delete)
   deletePatient: async (id) => {
     const response = await api.delete(`/patients/${id}`);
-    return response.data;
+    return response;
   },
 
   // Get search suggestions
@@ -65,9 +65,9 @@ const patientService = {
     if (!query || query.length < 2) {
       return { suggestions: [] };
     }
-    
+
     const response = await api.get(`/patients/search/suggestions?q=${encodeURIComponent(query)}`);
-    return response.data;
+    return response;
   },
 
   // Helper function to calculate age

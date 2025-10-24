@@ -4,10 +4,14 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config();
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+// Load environment variables
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
+
+// Use shared Prisma instance
+const prisma = require('./src/lib/prisma');
 
 // Import routes
 const authRoutes = require('./src/routes/auth');
@@ -18,6 +22,8 @@ const surgeryRoutes = require('./src/routes/surgery');
 const liverTransplantRoutes = require('./src/routes/liverTransplant');
 const fileRoutes = require('./src/routes/files');
 const followUpRoutes = require('./src/routes/followUp');
+const campRoutes = require('./src/routes/camps');
+const campRegistrationRoutes = require('./src/routes/campRegistrations');
 
 // Import middleware
 const errorHandler = require('./src/middleware/errorHandler');
@@ -43,17 +49,36 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // CORS configuration
-const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? [process.env.FRONTEND_URL || 'https://medical-patient-management.vercel.app']
-  : ['http://localhost:3000'];
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
 
-app.use(cors({
-  origin: allowedOrigins,
+    // In development, allow all localhost origins
+    if (process.env.NODE_ENV !== 'production') {
+      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        return callback(null, true);
+      }
+    }
+
+    // In production, check against allowed origins
+    const allowedOrigins = [
+      process.env.FRONTEND_URL || 'https://medical-patient-management.vercel.app'
+    ];
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   optionsSuccessStatus: 200
-}));
+};
+
+app.use(cors(corsOptions));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -70,11 +95,12 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Root endpoint
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.status(200).json({
     success: true,
     message: 'Medical Patient Management System API',
     version: '1.0.0',
+    environment: process.env.NODE_ENV,
     endpoints: {
       health: '/health',
       auth: '/api/auth',
@@ -90,24 +116,48 @@ app.get('/', (req, res) => {
   });
 });
 
+// Simple ping endpoint (no database required)
+app.get('/ping', (_req, res) => {
+  res.status(200).json({
+    status: 'pong',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV
+  });
+});
+
 // Health check endpoint
-app.get('/health', async (req, res) => {
+app.get('/health', async (_req, res) => {
   try {
     // Check database connection
-    await prisma.$queryRaw`SELECT 1`;
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+    } catch (dbError) {
+      console.error('Database connection error:', dbError.message);
+      return res.status(503).json({
+        status: 'Error',
+        timestamp: new Date().toISOString(),
+        database: 'Disconnected',
+        error: dbError.message,
+        environment: process.env.NODE_ENV
+      });
+    }
+
     res.status(200).json({
       status: 'OK',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       environment: process.env.NODE_ENV,
-      database: 'Connected'
+      database: 'Connected',
+      nodeVersion: process.version,
+      memoryUsage: process.memoryUsage()
     });
   } catch (error) {
-    res.status(503).json({
+    console.error('Health check error:', error);
+    res.status(500).json({
       status: 'Error',
       timestamp: new Date().toISOString(),
-      database: 'Disconnected',
-      error: error.message
+      error: error.message,
+      environment: process.env.NODE_ENV
     });
   }
 });
@@ -121,9 +171,11 @@ app.use('/api/surgery', authMiddleware, surgeryRoutes);
 app.use('/api/liver-transplant', authMiddleware, liverTransplantRoutes);
 app.use('/api/files', authMiddleware, fileRoutes);
 app.use('/api/follow-up', authMiddleware, followUpRoutes);
+app.use('/api/camps', authMiddleware, campRoutes);
+app.use('/api/camp-registrations', campRegistrationRoutes); // Public for registrations
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use('*', (_req, res) => {
   res.status(404).json({
     success: false,
     message: 'Route not found'
@@ -146,12 +198,18 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🔗 API URL: http://localhost:${PORT}/api`);
-  console.log(`💊 Health Check: http://localhost:${PORT}/health`);
-});
+// Start server - Handle both local and Vercel environments
+if (process.env.NODE_ENV !== 'production') {
+  // Local development
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV}`);
+    console.log(`🔗 API URL: http://localhost:${PORT}/api`);
+    console.log(`💊 Health Check: http://localhost:${PORT}/health`);
+  });
+} else {
+  // Vercel production - export as serverless function
+  console.log('🚀 Server initialized for Vercel serverless environment');
+}
 
 module.exports = app;

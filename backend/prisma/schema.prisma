@@ -25,6 +25,7 @@ model User {
   // Relations
   createdPatients Patient[] @relation("CreatedBy")
   updatedPatients Patient[] @relation("UpdatedBy")
+  camps           Camp[]
 
   @@map("users")
 }
@@ -71,6 +72,9 @@ model Patient {
   weight            Float?    // in kg
   bmi               Float?    // calculated
   primaryDisease    String?   // Provisional diagnosis
+  bloodGroup        String?   // Blood group (A+, B+, O+, AB+, etc.)
+  meldScore         Int?      // MELD Score
+  transplantType    TransplantType? // DDLT/LDLT
   
   // Profile Photo
   profilePhotoUrl   String?
@@ -104,6 +108,11 @@ enum Sex {
   MALE
   FEMALE
   OTHER
+}
+
+enum TransplantType {
+  DDLT  // Deceased Donor Liver Transplant
+  LDLT  // Living Donor Liver Transplant
 }
 
 // Comorbidities
@@ -864,4 +873,123 @@ model InvestigationResult {
   patient               Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@map("investigation_results")
+}
+
+// Camp Management Models
+model Camp {
+  id                    String   @id @default(cuid())
+  name                  String
+  venue                 String
+  date                  DateTime
+  startTime             String
+  endTime               String
+  description           String?
+  maxCapacity           Int?
+  currentRegistrations  Int      @default(0)
+  status                CampStatus @default(ACTIVE)
+
+  // Camp registrations
+  registrations         CampRegistration[]
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  createdById           String
+  createdBy             User     @relation(fields: [createdById], references: [id])
+
+  @@map("camps")
+}
+
+model CampRegistration {
+  id                    String   @id @default(cuid())
+  campId                String
+  camp                  Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
+
+  // Basic Patient Information
+  fullName              String
+  dateOfBirth           DateTime?
+  age                   Int?
+  gender                Sex
+  mobileNumber          String
+  address               String
+  emailId               String?
+  emergencyContactName  String
+  emergencyContactNumber String
+
+  // Service Selection
+  selectedServices      String[] // Array of selected services
+  endoscopySelected     Boolean  @default(false)
+  siboTestSelected      Boolean  @default(false)
+  healthCheckupSelected Boolean  @default(false)
+  totalAmount           Float    @default(0)
+
+  // Medical History & Symptoms
+  currentSymptoms       String[] // Array of symptoms
+  abdominalPain         Boolean  @default(false)
+  bloatingGas           Boolean  @default(false)
+  nauseaVomiting        Boolean  @default(false)
+  heartburnAcidReflux   Boolean  @default(false)
+  difficultySwallowing  Boolean  @default(false)
+  bowelHabitsChange     Boolean  @default(false)
+  unexplainedWeightLoss Boolean  @default(false)
+  lossOfAppetite        Boolean  @default(false)
+  jaundiceYellowEyes    Boolean  @default(false)
+
+  // Previous History
+  previousHistory       String[] // Array of previous conditions
+  liverDisease          Boolean  @default(false)
+  kidneyProblems        Boolean  @default(false)
+  heartConditions       Boolean  @default(false)
+  diabetes              Boolean  @default(false)
+  highBloodPressure     Boolean  @default(false)
+  previousEndoscopy     Boolean  @default(false)
+
+  // Risk Assessment
+  alcoholConsumption    Boolean  @default(false)
+  alcoholFrequency      String?
+  smoking               Boolean  @default(false)
+  familyHistoryGastro   Boolean  @default(false)
+
+  // Administrative Fields
+  paymentStatus         PaymentStatus @default(PENDING)
+  preferredTimeSlot     String?
+  registrationDateTime  DateTime @default(now())
+  campDateConfirmed     Boolean  @default(true)
+  consentForProcedures  Boolean  @default(false)
+
+  // Camp Management Fields
+  registrationId        String   @unique
+  tokenNumber           String?
+  priorityLevel         PriorityLevel @default(NORMAL)
+  specialInstructions   String?
+  followupRequired      Boolean  @default(false)
+
+  // Pre-procedure Requirements (for Endoscopy)
+  fastingStatus         Boolean  @default(false)
+  currentMedications    String?
+  bloodThinners         Boolean  @default(false)
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("camp_registrations")
+}
+
+enum CampStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  POSTPONED
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+  FAILED
+  REFUNDED
+}
+
+enum PriorityLevel {
+  HIGH
+  NORMAL
+  LOW
 }

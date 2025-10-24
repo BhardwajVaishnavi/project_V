@@ -63,6 +63,7 @@ const Sidebar = ({ open, onClose, width, isMobile }) => {
       children: [
         { title: 'All Patients', icon: <ListIcon />, path: '/patients' },
         { title: 'Add Patient', icon: <Add />, path: '/patients/new' },
+        { title: 'Create Credentials', icon: <Add />, path: '/patients/credentials' },
       ],
     },
     {
@@ -108,6 +109,15 @@ const Sidebar = ({ open, onClose, width, isMobile }) => {
       children: [
         { title: 'All Follow-ups', icon: <ListIcon />, path: '/follow-up' },
         { title: 'New Follow-up', icon: <Add />, path: '/follow-up/new' },
+      ],
+    },
+    {
+      title: 'Camps',
+      icon: <EventNote />,
+      path: '/camps',
+      children: [
+        { title: 'All Camps', icon: <ListIcon />, path: '/camps' },
+        { title: 'New Camp', icon: <Add />, path: '/camps/new' },
       ],
     },
   ];

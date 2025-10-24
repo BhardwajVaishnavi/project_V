@@ -165,8 +165,8 @@ export const patientSlice = createSlice({
       .addCase(getPatients.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isSuccess = true;
-        state.patients = action.payload.patients;
-        state.pagination = action.payload.pagination;
+        state.patients = action.payload.data.patients || [];
+        state.pagination = action.payload.data.pagination || {};
       })
       .addCase(getPatients.rejected, (state, action) => {
         state.isLoading = false;
@@ -179,7 +179,7 @@ export const patientSlice = createSlice({
       .addCase(getPatientById.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isSuccess = true;
-        state.currentPatient = action.payload.patient;
+        state.currentPatient = action.payload.data.patient;
       })
       .addCase(getPatientById.rejected, (state, action) => {
         state.isLoading = false;
@@ -192,7 +192,7 @@ export const patientSlice = createSlice({
       .addCase(createPatient.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isSuccess = true;
-        state.patients.unshift(action.payload.patient);
+        state.patients.unshift(action.payload.data.patient);
       })
       .addCase(createPatient.rejected, (state, action) => {
         state.isLoading = false;
@@ -205,14 +205,15 @@ export const patientSlice = createSlice({
       .addCase(updatePatient.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isSuccess = true;
+        const updatedPatient = action.payload.data.patient;
         const index = state.patients.findIndex(
-          (patient) => patient.id === action.payload.patient.id
+          (patient) => patient.id === updatedPatient.id
         );
         if (index !== -1) {
-          state.patients[index] = action.payload.patient;
+          state.patients[index] = updatedPatient;
         }
-        if (state.currentPatient?.id === action.payload.patient.id) {
-          state.currentPatient = action.payload.patient;
+        if (state.currentPatient?.id === updatedPatient.id) {
+          state.currentPatient = updatedPatient;
         }
       })
       .addCase(updatePatient.rejected, (state, action) => {
@@ -236,7 +237,7 @@ export const patientSlice = createSlice({
         state.message = action.payload;
       })
       .addCase(getSearchSuggestions.fulfilled, (state, action) => {
-        state.searchSuggestions = action.payload.suggestions;
+        state.searchSuggestions = action.payload.data?.suggestions || action.payload.suggestions || [];
       });
   },
 });

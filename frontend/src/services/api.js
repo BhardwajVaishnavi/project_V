@@ -18,10 +18,15 @@ api.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      // Debug: Log token usage
+      console.log('🔑 Using token for request:', config.url);
+    } else {
+      console.log('⚠️ No token found for request:', config.url);
     }
     return config;
   },
   (error) => {
+    console.error('❌ Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -34,14 +39,28 @@ api.interceptors.response.use(
   },
   (error) => {
     const message = error.response?.data?.message || error.message || 'An error occurred';
-    
+
+    // Debug: Log all API errors
+    console.error('🚨 API Error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      message: message,
+      data: error.response?.data
+    });
+
     // Handle specific error cases
     if (error.response?.status === 401) {
+      console.log('🔒 401 Unauthorized - clearing session');
       // Unauthorized - clear token and redirect to login
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
-      toast.error('Session expired. Please login again.');
+      // Use React Router navigation instead of window.location
+      if (window.location.pathname !== '/login') {
+        console.log('🔄 Redirecting to login page');
+        window.location.replace('/login');
+        toast.error('Session expired. Please login again.');
+      }
     } else if (error.response?.status === 403) {
       toast.error('You do not have permission to perform this action.');
     } else if (error.response?.status === 404) {

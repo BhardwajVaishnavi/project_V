@@ -4,61 +4,73 @@ const multerS3 = require('multer-s3');
 const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../lib/prisma');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
-// Configure AWS S3
-const s3 = new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION || 'us-east-1'
-});
+// Configure AWS S3 only if credentials are provided
+let s3 = null;
+let upload = null;
 
-// File filter function
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = (process.env.ALLOWED_FILE_TYPES || 'pdf,jpg,jpeg,png,doc,docx').split(',');
-  const fileExtension = path.extname(file.originalname).toLowerCase().substring(1);
-  
-  if (allowedTypes.includes(fileExtension)) {
-    cb(null, true);
-  } else {
-    cb(new Error(`File type .${fileExtension} is not allowed. Allowed types: ${allowedTypes.join(', ')}`), false);
-  }
-};
+if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.S3_BUCKET_NAME) {
+  s3 = new AWS.S3({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION || 'us-east-1'
+  });
 
-// Configure multer for S3 upload
-const upload = multer({
-  storage: multerS3({
-    s3: s3,
-    bucket: process.env.S3_BUCKET_NAME,
-    acl: 'private', // Files are private by default
-    key: function (req, file, cb) {
-      const fileExtension = path.extname(file.originalname);
-      const fileName = `${uuidv4()}${fileExtension}`;
-      const folder = req.body.documentType || 'general';
-      cb(null, `medical-files/${folder}/${fileName}`);
-    },
-    metadata: function (req, file, cb) {
-      cb(null, {
-        fieldName: file.fieldname,
-        originalName: file.originalname,
-        uploadedBy: req.user.id,
-        uploadedAt: new Date().toISOString()
-      });
+  // File filter function
+  const fileFilter = (req, file, cb) => {
+    const allowedTypes = (process.env.ALLOWED_FILE_TYPES || 'pdf,jpg,jpeg,png,doc,docx').split(',');
+    const fileExtension = path.extname(file.originalname).toLowerCase().substring(1);
+
+    if (allowedTypes.includes(fileExtension)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`File type .${fileExtension} is not allowed. Allowed types: ${allowedTypes.join(', ')}`), false);
     }
-  }),
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024 // 10MB default
-  }
-});
+  };
+
+  // Configure multer for S3 upload
+  upload = multer({
+    storage: multerS3({
+      s3: s3,
+      bucket: process.env.S3_BUCKET_NAME,
+      acl: 'private', // Files are private by default
+      key: function (req, file, cb) {
+        const fileExtension = path.extname(file.originalname);
+        const fileName = `${uuidv4()}${fileExtension}`;
+        const folder = req.body.documentType || 'general';
+        cb(null, `medical-files/${folder}/${fileName}`);
+      },
+      metadata: function (req, file, cb) {
+        cb(null, {
+          fieldName: file.fieldname,
+          originalName: file.originalname,
+          uploadedBy: req.user.id,
+          uploadedAt: new Date().toISOString()
+        });
+      }
+    }),
+    fileFilter: fileFilter,
+    limits: {
+      fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024 // 10MB default
+    }
+  });
+}
 
 // @route   POST /api/files/upload
 // @desc    Upload file to S3 and save record to database
 // @access  Private
-router.post('/upload', upload.single('file'), async (req, res) => {
+router.post('/upload', (req, res, next) => {
+  if (!upload) {
+    return res.status(503).json({
+      success: false,
+      message: 'File upload service is not configured'
+    });
+  }
+  upload.single('file')(req, res, next);
+}, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -147,7 +159,15 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 // @route   POST /api/files/upload-multiple
 // @desc    Upload multiple files to S3
 // @access  Private
-router.post('/upload-multiple', upload.array('files', 10), async (req, res) => {
+router.post('/upload-multiple', (req, res, next) => {
+  if (!upload) {
+    return res.status(503).json({
+      success: false,
+      message: 'File upload service is not configured'
+    });
+  }
+  upload.array('files', 10)(req, res, next);
+}, async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
@@ -383,3 +403,4 @@ router.delete('/:id', async (req, res) => {
 });
 
 module.exports = router;
+

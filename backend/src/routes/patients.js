@@ -1,9 +1,8 @@
 const express = require('express');
 const { body, validationResult, query } = require('express-validator');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../lib/prisma');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Validation middleware
 const validatePatient = [
@@ -132,8 +131,37 @@ router.get('/', async (req, res) => {
           primaryDisease: true,
           dateOfVisit: true,
           profilePhotoUrl: true,
+          bloodGroup: true,
+          meldScore: true,
+          transplantType: true,
           createdAt: true,
-          updatedAt: true
+          updatedAt: true,
+          surgeries: {
+            select: {
+              id: true,
+              dateOfSurgery: true,
+              nameOfSurgery: true,
+              nextFollowUp: true
+            },
+            orderBy: {
+              dateOfSurgery: 'desc'
+            }
+          },
+          followUps: {
+            select: {
+              id: true,
+              followUpDate: true,
+              status: true
+            },
+            where: {
+              followUpDate: {
+                gte: new Date()
+              }
+            },
+            orderBy: {
+              followUpDate: 'asc'
+            }
+          }
         }
       }),
       prisma.patient.count({ where })

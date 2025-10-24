@@ -14,6 +14,13 @@ import {
   Chip,
   Paper,
   IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  LinearProgress,
 } from '@mui/material';
 import {
   People,
@@ -24,10 +31,28 @@ import {
   TrendingUp,
   Person,
   Refresh,
+  CheckCircle,
+  Warning,
+  Info,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { format } from 'date-fns';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
 import { getUpcomingFollowUps } from '../../store/slices/followUpSlice';
 
@@ -109,6 +134,62 @@ const DashboardPage = () => {
     },
   ];
 
+  // Liver Transplant Statistics
+  const liverTransplantStats = [
+    {
+      title: 'Transplants This Year',
+      value: '156',
+      change: '+18%',
+      icon: <LocalHospital />,
+      color: '#2e7d32',
+    },
+    {
+      title: 'Awaiting Transplant',
+      value: '34',
+      change: '+2%',
+      icon: <Warning />,
+      color: '#ed6c02',
+    },
+    {
+      title: 'Post-Transplant Follow-up',
+      value: '287',
+      change: '+5%',
+      icon: <CheckCircle />,
+      color: '#1976d2',
+    },
+    {
+      title: 'Donor Evaluations',
+      value: '12',
+      change: '+3%',
+      icon: <Info />,
+      color: '#9c27b0',
+    },
+  ];
+
+  // Chart data for patient trends
+  const patientTrendData = [
+    { month: 'Jan', patients: 120, transplants: 8 },
+    { month: 'Feb', patients: 145, transplants: 12 },
+    { month: 'Mar', patients: 168, transplants: 15 },
+    { month: 'Apr', patients: 192, transplants: 18 },
+    { month: 'May', patients: 215, transplants: 22 },
+    { month: 'Jun', patients: 234, transplants: 25 },
+  ];
+
+  // Chart data for transplant types
+  const transplantTypeData = [
+    { name: 'DDLT', value: 89, color: '#2e7d32' },
+    { name: 'LDLT', value: 67, color: '#1976d2' },
+  ];
+
+  // Chart data for patient status
+  const patientStatusData = [
+    { status: 'Active', count: 234, color: '#2e7d32' },
+    { status: 'Awaiting', count: 34, color: '#ed6c02' },
+    { status: 'Completed', count: 156, color: '#1976d2' },
+    { status: 'Inactive', count: 12, color: '#9c27b0' },
+  ];
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'SCHEDULED':
@@ -182,6 +263,135 @@ const DashboardPage = () => {
             </Card>
           </Grid>
         ))}
+      </Grid>
+
+      {/* Liver Transplant Statistics */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+          Liver Transplant Program
+        </Typography>
+        <Grid container spacing={3}>
+          {liverTransplantStats.map((stat, index) => (
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Avatar
+                      sx={{
+                        bgcolor: stat.color,
+                        mr: 2,
+                        width: 40,
+                        height: 40,
+                      }}
+                    >
+                      {stat.icon}
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" fontWeight="bold">
+                        {stat.value}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {stat.title}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" color="success.main">
+                    {stat.change}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+
+      {/* Charts Section */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Patient Trends Chart */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+                Patient & Transplant Trends
+              </Typography>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={patientTrendData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="patients"
+                    stroke="#1976d2"
+                    name="Total Patients"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="transplants"
+                    stroke="#2e7d32"
+                    name="Transplants"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Transplant Type Distribution */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+                Transplant Type Distribution
+              </Typography>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={transplantTypeData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => `${name}: ${value}`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {transplantTypeData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Patient Status Distribution */}
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+                Patient Status Distribution
+              </Typography>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={patientStatusData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="status" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#1976d2" radius={[8, 8, 0, 0]}>
+                    {patientStatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </Grid>
       </Grid>
 
       <Grid container spacing={3}>
