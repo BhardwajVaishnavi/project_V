@@ -207,9 +207,7 @@ if (process.env.NODE_ENV !== 'production') {
     console.log(`🔗 API URL: http://localhost:${PORT}/api`);
     console.log(`💊 Health Check: http://localhost:${PORT}/health`);
   });
-} else {
-  // Vercel production - export as serverless function
-  console.log('🚀 Server initialized for Vercel serverless environment');
 }
 
+// Always export the app for Vercel serverless functions
 module.exports = app;
